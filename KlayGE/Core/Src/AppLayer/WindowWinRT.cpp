@@ -78,8 +78,8 @@ namespace KlayGE
 
 		ABI::Windows::Foundation::Rect rc;
 		wnd_->get_Bounds(&rc);
-		width_ = static_cast<uint32_t>(rc.Width * dpi_scale_);
-		height_ = static_cast<uint32_t>(rc.Height * dpi_scale_);
+		width_ = static_cast<uint32_t>(rc.Width * dpi_scale_ + 0.5f);
+		height_ = static_cast<uint32_t>(rc.Height * dpi_scale_ + 0.5f);
 	}
 
 	void Window::DetectsDPI()

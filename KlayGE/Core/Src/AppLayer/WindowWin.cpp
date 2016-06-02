@@ -132,23 +132,27 @@ namespace KlayGE
 			style = WS_OVERLAPPEDWINDOW;
 		}
 
-		RECT rc = { 0, 0, settings.width, settings.height };
+		int32_t left_dpi = static_cast<int32_t>(settings.left * dpi_scale_ + 0.5f);
+		int32_t top_dpi = static_cast<int32_t>(settings.top * dpi_scale_ + 0.5f);
+		uint32_t width_dpi = static_cast<uint32_t>(settings.width * dpi_scale_ + 0.5f);
+		uint32_t height_dpi = static_cast<uint32_t>(settings.height * dpi_scale_ + 0.5f);
+
+		RECT rc = { left_dpi, top_dpi, static_cast<LONG>(left_dpi + width_dpi), static_cast<LONG>(top_dpi + height_dpi) };
 		::AdjustWindowRect(&rc, style, false);
 
 		// Create our main window
 		// Pass pointer to self
 		wnd_ = ::CreateWindowW(wname_.c_str(), wname_.c_str(),
-			style, settings.left, settings.top,
-			rc.right - rc.left, rc.bottom - rc.top, 0, 0, hInst, nullptr);
+			style, left_dpi, top_dpi, rc.right - rc.left, rc.bottom - rc.top, 0, 0, hInst, nullptr);
 
 		default_wnd_proc_ = ::DefWindowProc;
 		external_wnd_ = false;
 
 		::GetClientRect(wnd_, &rc);
-		left_ = static_cast<int32_t>(settings.left * dpi_scale_ + 0.5f);
-		top_ = static_cast<int32_t>(settings.top * dpi_scale_ + 0.5f);
-		width_ = static_cast<uint32_t>((rc.right - rc.left) * dpi_scale_ + 0.5f);
-		height_ = static_cast<uint32_t>((rc.bottom - rc.top) * dpi_scale_ + 0.5f);
+		left_ = rc.left;
+		top_ = rc.top;
+		width_ = rc.right - rc.left;
+		height_ = rc.bottom - rc.top;
 
 #ifdef KLAYGE_COMPILER_MSVC
 #pragma warning(push)
@@ -177,10 +181,10 @@ namespace KlayGE
 
 		RECT rc;
 		::GetClientRect(wnd_, &rc);
-		left_ = static_cast<int32_t>(settings.left * dpi_scale_ + 0.5f);
-		top_ = static_cast<int32_t>(settings.top * dpi_scale_ + 0.5f);
-		width_ = static_cast<uint32_t>((rc.right - rc.left) * dpi_scale_ + 0.5f);
-		height_ = static_cast<uint32_t>((rc.bottom - rc.top) * dpi_scale_ + 0.5f);
+		left_ = rc.left;
+		top_ = rc.top;
+		width_ = rc.right - rc.left;
+		height_ = rc.bottom - rc.top;
 
 #ifdef KLAYGE_COMPILER_MSVC
 #pragma warning(push)
@@ -223,19 +227,25 @@ namespace KlayGE
 
 			HINSTANCE hInst = ::GetModuleHandle(nullptr);
 
+			int32_t left_dpi = static_cast<int32_t>(left_ * dpi_scale_ + 0.5f);
+			int32_t top_dpi = static_cast<int32_t>(top_ * dpi_scale_ + 0.5f);
+			uint32_t width_dpi = static_cast<uint32_t>(width_ * dpi_scale_ + 0.5f);
+			uint32_t height_dpi = static_cast<uint32_t>(height_ * dpi_scale_ + 0.5f);
+
 			uint32_t style = static_cast<uint32_t>(::GetWindowLongPtrW(wnd_, GWL_STYLE));
-			RECT rc = { 0, 0, static_cast<LONG>(width_), static_cast<LONG>(height_) };
+			RECT rc = { left_dpi, top_dpi, static_cast<LONG>(left_dpi + width_dpi), static_cast<LONG>(top_dpi + height_dpi) };
 			::AdjustWindowRect(&rc, style, false);
 
 			::DestroyWindow(wnd_);
 
 			wnd_ = ::CreateWindowW(wname_.c_str(), wname_.c_str(),
-				style, left_, top_,
-				rc.right - rc.left, rc.bottom - rc.top, 0, 0, hInst, nullptr);
+				style, left_dpi, top_dpi, rc.right - rc.left, rc.bottom - rc.top, 0, 0, hInst, nullptr);
 
 			::GetClientRect(wnd_, &rc);
-			width_ = static_cast<uint32_t>((rc.right - rc.left) * dpi_scale_ + 0.5);
-			height_ = static_cast<uint32_t>((rc.bottom - rc.top) * dpi_scale_ + 0.5f);
+			left_ = rc.left;
+			top_ = rc.top;
+			width_ = rc.right - rc.left;
+			height_ = rc.bottom - rc.top;
 
 #ifdef KLAYGE_COMPILER_MSVC
 #pragma warning(push)
@@ -374,7 +384,19 @@ namespace KlayGE
 	void Window::DetectsDPI()
 	{
 #if (_WIN32_WINNT >= _WIN32_WINNT_WINBLUE)
-		typedef NTSTATUS(WINAPI *RtlGetVersionFunc)(OSVERSIONINFOEXW* pVersionInformation);
+		HMODULE shcore = ::LoadLibraryEx(TEXT("SHCore.dll"), nullptr, 0);
+		if (shcore)
+		{
+			typedef HRESULT (WINAPI *SetProcessDpiAwarenessFunc)(PROCESS_DPI_AWARENESS value);
+			SetProcessDpiAwarenessFunc DynamicSetProcessDpiAwareness
+				= reinterpret_cast<SetProcessDpiAwarenessFunc>(::GetProcAddress(shcore, "SetProcessDpiAwareness"));
+
+			DynamicSetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
+
+			::FreeLibrary(shcore);
+		}
+
+		typedef NTSTATUS (WINAPI *RtlGetVersionFunc)(OSVERSIONINFOEXW* pVersionInformation);
 		HMODULE ntdll = ::GetModuleHandleW(L"ntdll.dll");
 		KLAYGE_ASSUME(ntdll != nullptr);
 		RtlGetVersionFunc DynamicRtlGetVersion = reinterpret_cast<RtlGetVersionFunc>(::GetProcAddress(ntdll, "RtlGetVersion"));

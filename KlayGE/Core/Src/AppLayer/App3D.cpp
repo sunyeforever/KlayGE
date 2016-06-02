@@ -542,10 +542,10 @@ namespace KlayGE
 		ContextCfg cfg = Context::Instance().Config();
 		main_wnd_ = this->MakeWindow(name_, cfg.graphics_cfg);
 #ifndef KLAYGE_PLATFORM_WINDOWS_RUNTIME
-		cfg.graphics_cfg.left = main_wnd_->Left();
-		cfg.graphics_cfg.top = main_wnd_->Top();
-		cfg.graphics_cfg.width = main_wnd_->Width();
-		cfg.graphics_cfg.height = main_wnd_->Height();
+		cfg.graphics_cfg.left = static_cast<int32_t>(main_wnd_->Left() / main_wnd_->DPIScale() + 0.5f);
+		cfg.graphics_cfg.top = static_cast<int32_t>(main_wnd_->Top() / main_wnd_->DPIScale() + 0.5f);
+		cfg.graphics_cfg.width = static_cast<int32_t>(main_wnd_->Width() / main_wnd_->DPIScale() + 0.5f);
+		cfg.graphics_cfg.height = static_cast<int32_t>(main_wnd_->Height() / main_wnd_->DPIScale() + 0.5f);
 		Context::Instance().Config(cfg);
 #endif
 	}
@@ -560,10 +560,10 @@ namespace KlayGE
 		ContextCfg cfg = Context::Instance().Config();
 		main_wnd_ = this->MakeWindow(name_, cfg.graphics_cfg, native_wnd);
 #ifndef KLAYGE_PLATFORM_WINDOWS_RUNTIME
-		cfg.graphics_cfg.left = main_wnd_->Left();
-		cfg.graphics_cfg.top = main_wnd_->Top();
-		cfg.graphics_cfg.width = main_wnd_->Width();
-		cfg.graphics_cfg.height = main_wnd_->Height();
+		cfg.graphics_cfg.left = static_cast<int32_t>(main_wnd_->Left() / main_wnd_->DPIScale() + 0.5f);
+		cfg.graphics_cfg.top = static_cast<int32_t>(main_wnd_->Top() / main_wnd_->DPIScale() + 0.5f);
+		cfg.graphics_cfg.width = static_cast<int32_t>(main_wnd_->Width() / main_wnd_->DPIScale() + 0.5f);
+		cfg.graphics_cfg.height = static_cast<int32_t>(main_wnd_->Height() / main_wnd_->DPIScale() + 0.5f);
 		Context::Instance().Config(cfg);
 #endif
 	}
