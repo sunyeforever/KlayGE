@@ -165,6 +165,8 @@ namespace KlayGE
 
 		::ShowWindow(wnd_, hide_ ? SW_HIDE : SW_SHOWNORMAL);
 		::UpdateWindow(wnd_);
+
+		ready_ = true;
 	}
 
 	Window::Window(std::string const & name, RenderSettings const & settings, void* native_wnd)
@@ -223,23 +225,20 @@ namespace KlayGE
 	{
 		if (!external_wnd_)
 		{
+			ready_ = false;
+
 			this->DetectsDPI();
 
 			HINSTANCE hInst = ::GetModuleHandle(nullptr);
 
-			int32_t left_dpi = static_cast<int32_t>(left_ * dpi_scale_ + 0.5f);
-			int32_t top_dpi = static_cast<int32_t>(top_ * dpi_scale_ + 0.5f);
-			uint32_t width_dpi = static_cast<uint32_t>(width_ * dpi_scale_ + 0.5f);
-			uint32_t height_dpi = static_cast<uint32_t>(height_ * dpi_scale_ + 0.5f);
-
 			uint32_t style = static_cast<uint32_t>(::GetWindowLongPtrW(wnd_, GWL_STYLE));
-			RECT rc = { left_dpi, top_dpi, static_cast<LONG>(left_dpi + width_dpi), static_cast<LONG>(top_dpi + height_dpi) };
+			RECT rc = { left_, top_, static_cast<LONG>(left_ + width_), static_cast<LONG>(top_ + height_) };
 			::AdjustWindowRect(&rc, style, false);
 
 			::DestroyWindow(wnd_);
 
 			wnd_ = ::CreateWindowW(wname_.c_str(), wname_.c_str(),
-				style, left_dpi, top_dpi, rc.right - rc.left, rc.bottom - rc.top, 0, 0, hInst, nullptr);
+				style, left_, top_, rc.right - rc.left, rc.bottom - rc.top, 0, 0, hInst, nullptr);
 
 			::GetClientRect(wnd_, &rc);
 			left_ = rc.left;
@@ -258,6 +257,8 @@ namespace KlayGE
 
 			::ShowWindow(wnd_, hide_ ? SW_HIDE : SW_SHOWNORMAL);
 			::UpdateWindow(wnd_);
+
+			ready_ = true;
 		}
 	}
 
@@ -298,7 +299,6 @@ namespace KlayGE
 			}
 			else
 			{
-				active_ = true;
 				this->OnSize()(*this, true);
 			}
 			break;
@@ -358,8 +358,28 @@ namespace KlayGE
 
 #if (_WIN32_WINNT >= _WIN32_WINNT_WINBLUE)
 		case WM_DPICHANGED:
-			dpi_scale_ = static_cast<float>(HIWORD(wParam)) / USER_DEFAULT_SCREEN_DPI;
-			this->OnSize()(*this, true);
+			{
+				float old_dpi_scale = dpi_scale_;
+				dpi_scale_ = static_cast<float>(HIWORD(wParam)) / USER_DEFAULT_SCREEN_DPI;
+				float const scale = dpi_scale_ / old_dpi_scale;
+
+				int32_t left_dpi = static_cast<int32_t>(left_ * scale + 0.5f);
+				int32_t top_dpi = static_cast<int32_t>(top_ * scale + 0.5f);
+				uint32_t width_dpi = static_cast<uint32_t>(width_ * scale + 0.5f);
+				uint32_t height_dpi = static_cast<uint32_t>(height_ * scale + 0.5f);
+
+				uint32_t style = static_cast<uint32_t>(::GetWindowLongPtrW(wnd_, GWL_STYLE));
+				RECT rc = { left_dpi, top_dpi, static_cast<LONG>(left_dpi + width_dpi), static_cast<LONG>(top_dpi + height_dpi) };
+				::AdjustWindowRect(&rc, style, false);
+
+				::SetWindowPos(wnd_, nullptr, left_dpi, top_dpi, width_dpi, height_dpi, SWP_NOZORDER);
+
+				::GetClientRect(wnd_, &rc);
+				left_ = rc.left;
+				top_ = rc.top;
+				width_ = rc.right - rc.left;
+				height_ = rc.bottom - rc.top;
+			}
 			break;
 #endif
 
